@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "hentaivnx",
+      "name": "HentaiVnX",
+      "version": "1.0.1",
+      "scriptUrl": "https://raw.githubusercontent.com/kalel171/Vax-plugin/refs/heads/main/hentaivnx.js",
+      "iconUrl": "https://www.hentaivnx.com/favicon.ico"
+    }
+  ]
+}
