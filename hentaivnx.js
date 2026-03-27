@@ -1,10 +1,10 @@
-// hentaivnx.js - Plugin cho https://www.hentaivnx.com/ (Cập nhật 1.0.3 - Fix parse)
+// hentaivnx.js - Plugin cho https://www.hentaivnx.com/ (Version 1.0.4 - Fix Markdown parse)
 
 function getManifest() {
     return {
         id: "hentaivnx",
         name: "HentaiVnX",
-        version: "1.0.3",                    // TĂNG VERSION này
+        version: "1.0.4",
         baseUrl: "https://www.hentaivnx.com",
         type: "COMIC",
         language: "vi",
@@ -17,7 +17,7 @@ function getManifest() {
 
 function getHomeSections() {
     return [
-        { id: "latest",   name: "Truyện mới cập nhật", type: "list" },
+        { id: "latest", name: "Truyện mới cập nhật", type: "list" },
         { id: "featured", name: "Truyện đề cử", type: "list" }
     ];
 }
@@ -26,29 +26,33 @@ function getUrlList(slug, filtersJson) {
     return "https://www.hentaivnx.com/";
 }
 
-// Parse cải tiến mạnh hơn cho Markdown của hentaivnx
+// Parse Markdown mạnh hơn
 function parseListResponse(html) {
     const items = [];
-    
-    // Pattern chính: [Tiêu đề](link)
-    const regex = /\[([^\]]{8,})\]\((https?:\/\/www\.hentaivnx\.com\/truyen-hentai\/[^)]+)\)/g;
-    let match;
-    
-    while ((match = regex.exec(html)) !== null) {
-        let title = match[1].trim();
+    const lines = html.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        // Bắt các dòng có [Tiêu đề](link)
+        const match = line.match(/\[([^\]]{8,}?)\]\((https?:\/\/www\.hentaivnx\.com\/truyen-hentai\/[^)]+)\)/);
+        if (!match) continue;
+
+        let title = match[1].trim().replace(/&#8230;/g, '…').replace(/\[18\+\]/gi, '').trim();
         let url = match[2];
-        
-        // Lọc tiêu đề vô nghĩa
+
         if (title.length < 8 || title.includes("Chapter") || title.includes("OneShot")) continue;
-        
-        // Tìm chapter mới nhất gần đó
+
+        // Tìm chapter mới nhất ở các dòng sau
         let latestChapter = "Đang cập nhật";
-        const nearbyText = html.substring(Math.max(0, match.index - 100), match.index + 600);
-        const chMatch = nearbyText.match(/\[?(Chapter \d+|OneShot)[^\]]*\]?\s*\((https?:\/\/[^)]+)\)/i);
-        if (chMatch) {
-            latestChapter = chMatch[1].replace(/\[|\]/g, '');
+        for (let j = i + 1; j < Math.min(i + 8, lines.length); j++) {
+            const chMatch = lines[j].match(/\*\s*\[?(Chapter \d+|OneShot)[^\]]*\]?\s*\((https?:\/\/[^)]+)\)/i);
+            if (chMatch) {
+                latestChapter = chMatch[1].replace(/\[|\]/g, '').trim();
+                break;
+            }
         }
-        
+
         items.push({
             title: title,
             url: url,
@@ -57,9 +61,9 @@ function parseListResponse(html) {
             updateTime: ""
         });
     }
-    
-    // Loại trùng lặp
-    return [...new Map(items.map(i => [i.url, i])).values()];
+
+    // Loại bỏ trùng lặp
+    return [...new Map(items.map(item => [item.url, item])).values()];
 }
 
 function getUrlDetail(slug) {
@@ -67,24 +71,24 @@ function getUrlDetail(slug) {
 }
 
 function parseDetailResponse(html, url) {
-    let title = html.match(/\[([^\]]{10,})\]/)?.[1] || "Unknown Title";
-    
-    const thumbMatch = html.match(/src=["']([^"']+\.(jpg|png|jpeg|webp))["']/i);
-    const thumbnail = thumbMatch ? thumbMatch[1] : "";
+    let title = "Unknown Title";
+    const titleMatch = html.match(/\[([^\]]{10,})\]/);
+    if (titleMatch) title = titleMatch[1].trim();
 
     const chapters = [];
-    const chRegex = /<a href=["']([^"']*chapter-\d+[^"']*)["'][^>]*>([^<]+)<\/a>/gi;
+    const chRegex = /\[?(Chapter \d+|OneShot)[^\]]*\]?\s*\((https?:\/\/www\.hentaivnx\.com[^)]+)\)/gi;
     let m;
     while ((m = chRegex.exec(html)) !== null) {
-        let chUrl = m[1];
-        if (!chUrl.startsWith("http")) chUrl = "https://www.hentaivnx.com" + chUrl;
-        chapters.push({ name: m[2].trim(), url: chUrl });
+        chapters.push({
+            name: m[1].trim(),
+            url: m[2]
+        });
     }
 
     return {
         title: title,
         description: "Truyện hentai trên HentaiVnX",
-        thumbnail: thumbnail,
+        thumbnail: "",
         chapters: chapters.reverse(),
         status: "Đang tiến hành"
     };
