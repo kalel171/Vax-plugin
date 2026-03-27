@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "plugins": [
+        {
+            "id": "truyenqqno",
+            "name": "TruyenQQ",
+            "version": "1.0.0",
+            "scriptUrl": "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/plugins/truyenqqno_plugin.js",
+            "iconUrl": "https://truyenqqno.com/favicon.ico"
+        }
+    ]
+}
